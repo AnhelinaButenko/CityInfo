@@ -1,6 +1,10 @@
+using HwCityInfo.API.DbContexts;
 using HwCityInfo.API.Servises;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
+using static System.Net.Mime.MediaTypeNames;
+using System.Net.NetworkInformation;
 
 namespace HwCityInfo.API
 {
@@ -11,58 +15,69 @@ namespace HwCityInfo.API
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.Console()
-            .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Day)
-            .CreateLogger();
+            .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Day) //logging is written here in this file
+            .CreateLogger(); 
 
-            var builder = WebApplication.CreateBuilder(args);
+            var builder = WebApplication.CreateBuilder(args); //application is being built here
             //builder.Logging.ClearProviders();
             //builder.Logging.AddConsole();
 
-            builder.Host.UseSerilog();
+            builder.Host.UseSerilog(); //call will redirect all log events through your Serilog pipeline
 
             // Add services to the container.
-
+            // This call registers services that are typiically reuired when building APIs,
+            // like support for controllers, model binding, data annotations and formatters.
             builder.Services.AddControllers(options =>
             {
                 options.ReturnHttpNotAcceptable = true;
             }).AddNewtonsoftJson()
-                .AddXmlDataContractSerializerFormatters();
+                .AddXmlDataContractSerializerFormatters(); //adds XML input and output formatters to our API.
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // These statements register the required services on the container that
+            // are needed Swagger implementation.
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 
             #if DEBUG
-            builder.Services.AddTransient<IMailService, LocalMailService>();
+            builder.Services.AddTransient<IMailService, LocalMailService>(); //call Transient create each time they are requeste
+            //// i set up servises collection of the application. It is essential part of applicatian dependency injection container.
             #else
             builder.Services.AddTransient<IMailService, CloudMailService>();
             #endif
 
-            builder.Services.AddSingleton<CitiesDataStore>();
+            builder.Services.AddSingleton<CitiesDataStore>(); //Singleton create each time they are requeste
 
+            builder.Services.AddDbContext<CityInfoContext>(dbContextOptions => dbContextOptions.UseSqlite(
+                builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
+
+            // When all these services have been registered and potentially configured
+            // the web application can buil.
             var app = builder.Build();
 
-            //Configure the HTTP request pipeline.
-            
+            //Configure the HTTP request pipeline.           
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
+                app.UseSwagger();     //those ensure that a request to Swaggers index page
+                                      //will be handled by the code generate the documentation UI.   
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            app.UseHttpsRedirection(); // a few middleware are being added that will potentially
+                                       // result in documentation being shown 
 
             app.UseRouting();
 
-            app.UseAuthorization();
+            app.UseAuthorization();   // HTTP calls being redirected to HTTPS, authorization being set up
+                                      // or mappings to other parts of our code being set up.
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllers();
+                endpoints.MapControllers(); // it adds endpoints for controller action without specifying routes
+                                            // (what we will do with attributes).
             });
 
-            app.Run();
+            app.Run(); //Runs the application's standard message loop on the current thread, without a form
         }
     }
 }
