@@ -51,8 +51,11 @@ namespace HwCityInfo.API
             builder.Services.AddDbContext<CityInfoContext>(dbContextOptions => dbContextOptions.UseSqlite(
                 builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
 
+            builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>(); //register repository 
+            //throught the contract ICityInfoRepository and implementation CityInfoRepository
+
             // When all these services have been registered and potentially configured
-            // the web application can buil.
+            // the web application can build.
             var app = builder.Build();
 
             //Configure the HTTP request pipeline.           
