@@ -1,10 +1,13 @@
 ﻿using HwCityInfo.API.Models;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HwCityInfo.API.Entities
 {
     public class City
     {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Required]
@@ -14,7 +17,7 @@ namespace HwCityInfo.API.Entities
         [MaxLength(200)]
         public string? Description { get; set; }
 
-        public ICollection<PointOfInterest> PointOfInterests { get; set; }
+        public ICollection<PointOfInterest> PointsOfInterest { get; set; }
         = new List<PointOfInterest>();
 
         public City(string name) 

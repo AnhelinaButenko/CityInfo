@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HwCityInfo.API.Models
 {
-    public class CityDto
+    public class CityDto // use to get date, not to store it
     {
         [Key]
         [DatabaseGenerated (DatabaseGeneratedOption.Identity)]
