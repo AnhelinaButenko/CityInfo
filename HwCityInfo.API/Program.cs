@@ -6,85 +6,84 @@ using Serilog;
 using static System.Net.Mime.MediaTypeNames;
 using System.Net.NetworkInformation;
 
-namespace HwCityInfo.API
+namespace HwCityInfo.API;
+
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Debug()
+        .WriteTo.Console()
+        .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Day) //logging is written here in this file
+        .CreateLogger(); 
+
+        var builder = WebApplication.CreateBuilder(args); //application is being built here
+        //builder.Logging.ClearProviders();
+        //builder.Logging.AddConsole();
+
+        builder.Host.UseSerilog(); //call will redirect all log events through your Serilog pipeline
+
+        // Add services to the container.
+        // This call registers services that are typiically reuired when building APIs,
+        // like support for controllers, model binding, data annotations and formatters.
+        builder.Services.AddControllers(options =>
         {
-            Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .WriteTo.Console()
-            .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Day) //logging is written here in this file
-            .CreateLogger(); 
+            options.ReturnHttpNotAcceptable = true;
+        }).AddNewtonsoftJson()
+            .AddXmlDataContractSerializerFormatters(); //adds XML input and output formatters to our API.
 
-            var builder = WebApplication.CreateBuilder(args); //application is being built here
-            //builder.Logging.ClearProviders();
-            //builder.Logging.AddConsole();
+        // These statements register the required services on the container that
+        // are needed Swagger implementation.
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 
-            builder.Host.UseSerilog(); //call will redirect all log events through your Serilog pipeline
+        #if DEBUG
+        builder.Services.AddTransient<IMailService, LocalMailService>(); //call Transient create each time they are requeste
+        //// i set up servises collection of the application. It is essential part of applicatian dependency injection container.
+        #else
+        builder.Services.AddTransient<IMailService, CloudMailService>();
+        #endif
 
-            // Add services to the container.
-            // This call registers services that are typiically reuired when building APIs,
-            // like support for controllers, model binding, data annotations and formatters.
-            builder.Services.AddControllers(options =>
-            {
-                options.ReturnHttpNotAcceptable = true;
-            }).AddNewtonsoftJson()
-                .AddXmlDataContractSerializerFormatters(); //adds XML input and output formatters to our API.
+        builder.Services.AddSingleton<CitiesDataStore>(); //Singleton create each time they are requeste
 
-            // These statements register the required services on the container that
-            // are needed Swagger implementation.
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
+        builder.Services.AddDbContext<CityInfoContext>(dbContextOptions => dbContextOptions.UseSqlite(
+            builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
 
-            #if DEBUG
-            builder.Services.AddTransient<IMailService, LocalMailService>(); //call Transient create each time they are requeste
-            //// i set up servises collection of the application. It is essential part of applicatian dependency injection container.
-            #else
-            builder.Services.AddTransient<IMailService, CloudMailService>();
-            #endif
-
-            builder.Services.AddSingleton<CitiesDataStore>(); //Singleton create each time they are requeste
-
-            builder.Services.AddDbContext<CityInfoContext>(dbContextOptions => dbContextOptions.UseSqlite(
-                builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
-
-            builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>(); //register repository 
-            //throught the contract ICityInfoRepository and implementation CityInfoRepository
+        builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>(); //register repository 
+        //throught the contract ICityInfoRepository and implementation CityInfoRepository
 
 
-            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+        builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 
-            // When all these services have been registered and potentially configured
-            // the web application can build.
-            var app = builder.Build();
+        // When all these services have been registered and potentially configured
+        // the web application can build.
+        var app = builder.Build();
 
-            //Configure the HTTP request pipeline.           
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();     //those ensure that a request to Swaggers index page
-                                      //will be handled by the code generate the documentation UI.   
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection(); // a few middleware are being added that will potentially
-                                       // result in documentation being shown 
-
-            app.UseRouting();
-
-            app.UseAuthorization();   // HTTP calls being redirected to HTTPS, authorization being set up
-                                      // or mappings to other parts of our code being set up.
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers(); // it adds endpoints for controller action without specifying routes
-                                            // (what we will do with attributes).
-            });
-
-            app.Run(); //Runs the application's standard message loop on the current thread, without a form
+        //Configure the HTTP request pipeline.           
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();     //those ensure that a request to Swaggers index page
+                                  //will be handled by the code generate the documentation UI.   
+            app.UseSwaggerUI();
         }
+
+        app.UseHttpsRedirection(); // a few middleware are being added that will potentially
+                                   // result in documentation being shown 
+
+        app.UseRouting();
+
+        app.UseAuthorization();   // HTTP calls being redirected to HTTPS, authorization being set up
+                                  // or mappings to other parts of our code being set up.
+
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers(); // it adds endpoints for controller action without specifying routes
+                                        // (what we will do with attributes).
+        });
+
+        app.Run(); //Runs the application's standard message loop on the current thread, without a form
     }
 }

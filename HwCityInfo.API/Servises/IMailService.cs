@@ -1,7 +1,6 @@
-﻿namespace HwCityInfo.API.Servises
+﻿namespace HwCityInfo.API.Servises;
+
+public interface IMailService
 {
-    public interface IMailService
-    {
-        void Send(string subject, string message);
-    }
+    void Send(string subject, string message);
 }

@@ -11,5 +11,4 @@ public class PointOfInterestProfile : Profile
         CreateMap<Models.PointOfInterestForUpdateDto, Entities.PointOfInterest>();
         CreateMap<Entities.PointOfInterest, Models.PointOfInterestForUpdateDto>();
     }
-    
 }
