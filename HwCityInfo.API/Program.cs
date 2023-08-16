@@ -15,17 +15,15 @@ public class Program
         Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Debug()
         .WriteTo.Console()
-        .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Day) //logging is written here in this file
+        .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Month) //logging is written here in this file
         .CreateLogger(); 
 
         var builder = WebApplication.CreateBuilder(args); //application is being built here
-        //builder.Logging.ClearProviders();
-        //builder.Logging.AddConsole();
 
         builder.Host.UseSerilog(); //call will redirect all log events through your Serilog pipeline
 
         // Add services to the container.
-        // This call registers services that are typiically reuired when building APIs,
+        // This call registers services that are typiically required when building APIs,
         // like support for controllers, model binding, data annotations and formatters.
         builder.Services.AddControllers(options =>
         {
@@ -46,17 +44,14 @@ public class Program
         builder.Services.AddTransient<IMailService, CloudMailService>();
         #endif
 
-        builder.Services.AddSingleton<CitiesDataStore>(); //Singleton create each time they are requeste
-
         builder.Services.AddDbContext<CityInfoContext>(dbContextOptions => dbContextOptions.UseSqlite(
             builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
 
         builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>(); //register repository 
-        //throught the contract ICityInfoRepository and implementation CityInfoRepository
+                                                                               //throught the contract ICityInfoRepository and implementation CityInfoRepository
 
-
+        // Using AutoMapper greatly reduces error - prone mapping code
         builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
 
         // When all these services have been registered and potentially configured
         // the web application can build.

@@ -6,9 +6,14 @@ using System.Threading.Tasks;
 namespace HwCityInfo.API.Servises;
 
 // This is the contract that your repository implementation will have to add here to.
+
+// The Repository Pattern It`s an abstraction that reduces complexity(умен сложость)
+// and aims to(стремится)make the code, safe for the repository implementation
 public interface ICityInfoRepository
 {
-    // I was adding methods to get data.
+    // I was adding async methods to get data.
+    // that freeing up threads so they can be used for
+    // other tasks, which improves the scalability application
 
     Task<IEnumerable<City>> GetCitiesAsync();
 
@@ -19,6 +24,7 @@ public interface ICityInfoRepository
 
     Task<PointOfInterest?> GetPointOfInterestForCityAsync(int cityId, int pointOfInterestId);
 
+    // check if exists city
     Task<bool> CityExistsAsync(int cityId);
 
     Task AddPointOfInterestForCityAsync(int cityId, PointOfInterest pointOfInterest);
