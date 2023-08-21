@@ -2,6 +2,7 @@
 using HwCityInfo.API.Models;
 using HwCityInfo.API.Servises;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace HwCityInfo.API.Controllers;
 
@@ -13,6 +14,7 @@ public class CitiesController : ControllerBase
 {
     private readonly ICityInfoRepository _cityInfoRepository;
     private readonly IMapper _mapper;
+    const int maxCitiesPageSize = 20;
 
     // add IMapper implementation instance
     // This is the contract AutoMapper`s must add here to
@@ -25,16 +27,27 @@ public class CitiesController : ControllerBase
     }
 
     [HttpGet] // to respond to Get request. we use HttpGet attribute
-    public async Task<ActionResult<IEnumerable<CityWithoutPointsOfInterestDto>>> GetCities()
+    public async Task<ActionResult<IEnumerable<CityWithoutPointsOfInterestDto>>> GetCities(
+        string? name, string? searchQuery, int pageNumber = 1, int pageSize = 10) //specify defoult, if concumer choose 100
+                                                                                  //it`s negative impecteve on  performance
     {
-        var cityEntities = await _cityInfoRepository.GetCitiesAsync();
+        if (pageSize > maxCitiesPageSize)
+        {
+            pageSize = maxCitiesPageSize;
+        }
+
+        var (cityEntities, paginationMetadata) = await _cityInfoRepository
+            .GetCitiesAsync(name, searchQuery, pageNumber, pageSize); //instead of calling into GetCitiesAsync,call into an
+                                                                      //overload for that, that one that accepts name, searchQuery
+        Response.Headers.Add("X-Pagination",
+                JsonSerializer.Serialize(paginationMetadata));
 
         // To effectivelly map call mapper.Map pass in the type i want to map to in this case that`s an 
-        //IEnumerable of CityWithoutPointsOfInterestDto
-        // As created a mapping from the entity to the DTO
+        // IEnumerable of CityWithoutPointsOfInterestDto
+        // As created a mapping from the entity to the DTO.
+        //using OK method for returning correct status code
         return Ok(_mapper.Map<IEnumerable<CityWithoutPointsOfInterestDto>>(cityEntities));
-        //return Ok(_citiesDataStore.Cities); //using OK method for returning correct status code
-    }
+    } // Let's get this running
 
     [HttpGet("{id}")] // we pass in as the routing templete with specify Id.
     public async Task<ActionResult<CityDto>> GetCity(

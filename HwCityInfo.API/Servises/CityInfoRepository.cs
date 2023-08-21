@@ -25,10 +25,44 @@ public class CityInfoRepository : ICityInfoRepository
         return await _context.Cities.OrderBy(c => c.Name).ToListAsync();
     }
 
+    public async Task<(IEnumerable<City>, PaginationMetadata)> GetCitiesAsync(
+        string? name, string? searchQuery, int pageNumber, int pageSize)
+    {
+        // collection to start from
+        var collection = _context.Cities as IQueryable<City>;
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            name = name.Trim();  // to get rid of line spaces 
+            collection = collection.Where(c =>c.Name == name); // started filltering
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            searchQuery = searchQuery.Trim();
+            collection = collection.Where(a => a.Name.Contains(searchQuery) 
+            || (a.Description != null && a.Description.Contains(searchQuery)));
+        }
+
+        var totalItemCount = await collection.CountAsync();
+
+        var pagionationMetadata = new PaginationMetadata(totalItemCount, pageSize, pageNumber);
+
+        // building a query and the query is only sent to the database at the end when the ToListAsync is reached
+        var collectionToReturn = await collection.OrderBy(c => c.Name)
+            .Skip(pageSize * (pageNumber - 1))
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (collectionToReturn, pagionationMetadata);
+
+        // Next I addeed this method in ICityInfoRepository contract
+    }
+
     public async Task<City?> GetCityAsync(int cityId, bool includePointsOfInterest)
     {
-        if (includePointsOfInterest) 
-        { 
+        if (includePointsOfInterest)
+        {
             return await _context.Cities.Include(c => c.PointsOfInterest)
                 .Where(c => c.Id == cityId).FirstOrDefaultAsync();
         }
