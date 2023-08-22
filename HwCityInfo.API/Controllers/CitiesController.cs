@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using HwCityInfo.API.Models;
 using HwCityInfo.API.Servises;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -8,6 +9,7 @@ namespace HwCityInfo.API.Controllers;
 
 [ApiController]
 [Route("api/cities")]
+[Authorize]
 // CitiesController derived from ControllerBase(give access to the model state,
 // the current user and common methods for returning responses).
 public class CitiesController : ControllerBase
@@ -39,6 +41,7 @@ public class CitiesController : ControllerBase
         var (cityEntities, paginationMetadata) = await _cityInfoRepository
             .GetCitiesAsync(name, searchQuery, pageNumber, pageSize); //instead of calling into GetCitiesAsync,call into an
                                                                       //overload for that, that one that accepts name, searchQuery
+        //Return pagination metadata in a custom pagination header
         Response.Headers.Add("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));
 

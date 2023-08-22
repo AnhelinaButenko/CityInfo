@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using HwCityInfo.API.Models;
 using HwCityInfo.API.Servises;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
@@ -8,6 +9,7 @@ using System.Data;
 namespace HwCityInfo.API.Controllers;
 
 [Route("api/cities/{cityId}/pointsofinterest")]
+[Authorize(Policy = "MustBeFromAntwerp")]
 [ApiController]
 public class PointsOfInterestController : ControllerBase
 {
@@ -34,6 +36,13 @@ public class PointsOfInterestController : ControllerBase
     [HttpGet]
     public async Task <ActionResult<IEnumerable<PointOfInterestDto>>> GetPointsOfInterst(int cityId)
     {
+        var cityName = User.Claims.FirstOrDefault(c => c.Type == "city")?.Value;
+
+        if (!await _cityInfoRepository.CityNameMatchesCityId(cityName, cityId))
+        {
+            return Forbid();
+        }
+
         if (!await _cityInfoRepository.CityExistsAsync(cityId))
         {
             _logger.LogInformation(
@@ -179,7 +188,7 @@ public class PointsOfInterestController : ControllerBase
         await _cityInfoRepository.SaveChangesAsync();
 
         _mailService.Send("Point of interest deleted.",
-            $"Point of ineerest {pointOfInterestEntity.Name} with ied {pointOfInterestEntity.Id} was deleted");
+            $"Point of ineerest {pointOfInterestEntity.Name} with id {pointOfInterestEntity.Id} was deleted");
 
         return NoContent();
     }

@@ -1,6 +1,6 @@
 ﻿namespace HwCityInfo.API.Servises;
 
-public class PaginationMetadata
+public class PaginationMetadata // Pagination metadata often includes:
 {
     public int TotalItemCount { get; set; }
 
