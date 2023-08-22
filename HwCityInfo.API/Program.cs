@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using static System.Net.Mime.MediaTypeNames;
 using System.Net.NetworkInformation;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace HwCityInfo.API;
 
@@ -16,7 +19,7 @@ public class Program
         .MinimumLevel.Debug()
         .WriteTo.Console()
         .WriteTo.File("logs/hwcityinfo.txt", rollingInterval: RollingInterval.Month) //logging is written here in this file
-        .CreateLogger(); 
+        .CreateLogger();
 
         var builder = WebApplication.CreateBuilder(args); //application is being built here
 
@@ -37,12 +40,12 @@ public class Program
         builder.Services.AddSwaggerGen();
         builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 
-        #if DEBUG
+#if DEBUG
         builder.Services.AddTransient<IMailService, LocalMailService>(); //call Transient create each time they are requeste
-        //// i set up servises collection of the application. It is essential part of applicatian dependency injection container.
-        #else
+                                                                         //// i set up servises collection of the application. It is essential part of applicatian dependency injection container.
+#else
         builder.Services.AddTransient<IMailService, CloudMailService>();
-        #endif
+#endif
 
         builder.Services.AddDbContext<CityInfoContext>(dbContextOptions => dbContextOptions.UseSqlite(
             builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
@@ -52,6 +55,30 @@ public class Program
 
         // Using AutoMapper greatly reduces error - prone mapping code
         builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+        builder.Services.AddAuthentication("Bearer")
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new()
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Authentication:Issuer"],
+                ValidAudience = builder.Configuration["Authentication:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.ASCII.GetBytes(builder.Configuration["Authentication:SecretForKey"]))
+            };
+        });
+
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("MustBeFromAntwerp", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("city", "Antwerp");
+            });
+        });
 
         // When all these services have been registered and potentially configured
         // the web application can build.
@@ -70,7 +97,9 @@ public class Program
 
         app.UseRouting();
 
-        app.UseAuthorization();   // HTTP calls being redirected to HTTPS, authorization being set up
+        app.UseAuthentication();
+
+        app.UseAuthorization(); // HTTP calls being redirected to HTTPS, authorization being set up
                                   // or mappings to other parts of our code being set up.
 
         app.UseEndpoints(endpoints =>

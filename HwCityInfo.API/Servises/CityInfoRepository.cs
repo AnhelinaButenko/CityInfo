@@ -70,6 +70,11 @@ public class CityInfoRepository : ICityInfoRepository
         return await _context.Cities.Where(c => c.Id == cityId).FirstOrDefaultAsync();
     }
 
+    public async Task<bool> CityNameMatchesCityId(string? cityName, int cityId)
+    {
+        return await _context.Cities.AnyAsync(c => c.Id == cityId && c.Name == cityName);
+    }
+
     // add method CityExistsAsync and in it we call into AnyAsync. That will return true if a city with this ID
     // add this signature to the contract
     public async Task<bool> CityExistsAsync(int cityId)
@@ -99,13 +104,13 @@ public class CityInfoRepository : ICityInfoRepository
         }
     }
 
-    public async Task<bool> SaveChangesAsync()
-    {
-        return (await _context.SaveChangesAsync() >= 0);
-    }
-
     public void DeletePointOfInterest(PointOfInterest pointOfInterest)
     {
         _context.PointsOfInterests.Remove(pointOfInterest);
+    }
+
+    public async Task<bool> SaveChangesAsync()
+    {
+        return (await _context.SaveChangesAsync() >= 0);
     }
 }
