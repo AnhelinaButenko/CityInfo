@@ -8,8 +8,9 @@ using System.Text.Json;
 namespace HwCityInfo.API.Controllers;
 
 [ApiController]
-[Route("api/cities")]
 [Authorize]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/cities")]
 // CitiesController derived from ControllerBase(give access to the model state,
 // the current user and common methods for returning responses).
 public class CitiesController : ControllerBase
@@ -22,7 +23,7 @@ public class CitiesController : ControllerBase
     // This is the contract AutoMapper`s must add here to
     // I can map a ource object to a destination object and it will use the profile i created for that
     public CitiesController(ICityInfoRepository cityInfoRepository,
-        IMapper mapper) 
+        IMapper mapper)
     {
         _cityInfoRepository = cityInfoRepository ?? throw new ArgumentNullException(nameof(cityInfoRepository));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -41,7 +42,7 @@ public class CitiesController : ControllerBase
         var (cityEntities, paginationMetadata) = await _cityInfoRepository
             .GetCitiesAsync(name, searchQuery, pageNumber, pageSize); //instead of calling into GetCitiesAsync,call into an
                                                                       //overload for that, that one that accepts name, searchQuery
-        //Return pagination metadata in a custom pagination header
+                                                                      //Return pagination metadata in a custom pagination header
         Response.Headers.Add("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));
 
@@ -52,7 +53,19 @@ public class CitiesController : ControllerBase
         return Ok(_mapper.Map<IEnumerable<CityWithoutPointsOfInterestDto>>(cityEntities));
     } // Let's get this running
 
+
+    /// <summary>
+    /// Get a city by id
+    /// </summary>
+    /// <param name="id">The id of the city to get</param>
+    /// <param name="includePointsOfInterest">Whether or not to include the points of interest</param>
+    /// <returns>An IActionResult</returns>
+    /// <response code="200">Returns the requested city</response>
     [HttpGet("{id}")] // we pass in as the routing templete with specify Id.
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+
     public async Task<ActionResult<CityDto>> GetCity(
         int id, bool includePointsOfInterest = false)
     {

@@ -80,6 +80,13 @@ public class Program
             });
         });
 
+        builder.Services.AddApiVersioning(setupAction =>
+        {
+            setupAction.AssumeDefaultVersionWhenUnspecified = true;
+            setupAction.DefaultApiVersion = new Microsoft.AspNetCore.Mvc.ApiVersion(1, 0);
+            setupAction.ReportApiVersions = true;
+        });
+
         // When all these services have been registered and potentially configured
         // the web application can build.
         var app = builder.Build();
