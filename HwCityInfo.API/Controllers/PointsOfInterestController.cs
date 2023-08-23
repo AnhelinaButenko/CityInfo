@@ -8,8 +8,9 @@ using System.Data;
 
 namespace HwCityInfo.API.Controllers;
 
-[Route("api/cities/{cityId}/pointsofinterest")]
+[Route("api/v{version:apiVersion}/cities/{cityId}/pointsofinterest")]
 [Authorize(Policy = "MustBeFromAntwerp")]
+[ApiVersion("2.0")]
 [ApiController]
 public class PointsOfInterestController : ControllerBase
 {
@@ -36,12 +37,12 @@ public class PointsOfInterestController : ControllerBase
     [HttpGet]
     public async Task <ActionResult<IEnumerable<PointOfInterestDto>>> GetPointsOfInterst(int cityId)
     {
-        var cityName = User.Claims.FirstOrDefault(c => c.Type == "city")?.Value;
+        //var cityName = User.Claims.FirstOrDefault(c => c.Type == "city")?.Value;
 
-        if (!await _cityInfoRepository.CityNameMatchesCityId(cityName, cityId))
-        {
-            return Forbid();
-        }
+        //if (!await _cityInfoRepository.CityNameMatchesCityId(cityName, cityId))
+        //{
+        //    return Forbid();
+        //}
 
         if (!await _cityInfoRepository.CityExistsAsync(cityId))
         {
